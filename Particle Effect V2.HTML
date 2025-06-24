@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Particle System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            background: #000;
+            color: #fff;
+        }
+
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 320px;
+            background: rgba(20, 20, 30, 0.95);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-height: 90vh;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+        }
+
+        .controls::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .controls::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .controls::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        .controls::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .file-upload {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 24px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .file-upload:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+        }
+
+        .file-upload:active {
+            transform: translateY(0);
+        }
+
+        .performance {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .performance h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #a78bfa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .stat-value {
+            color: #e9d5ff;
+            font-weight: 500;
+            font-family: 'SF Mono', 'Monaco', monospace;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .control-group h4 {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #c4b5fd;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .control {
+            margin-bottom: 12px;
+        }
+
+        .control label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 6px;
+            color: #e9d5ff;
+            font-weight: 500;
+        }
+
+        .control input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #a78bfa;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+
+        .control input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: #c4b5fd;
+        }
+
+        .control input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #a78bfa;
+            cursor: pointer;
+            border-radius: 50%;
+            border: none;
+            transition: transform 0.2s;
+        }
+
+        .control input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            background: #c4b5fd;
+        }
+
+        .control input[type="color"] {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px;
+        }
+
+        .control input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .control input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 4px;
+        }
+
+        .value-display {
+            float: right;
+            font-size: 11px;
+            color: #a78bfa;
+            font-family: 'SF Mono', 'Monaco', monospace;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #a78bfa;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="loading">Loading...</div>
+    
+    <div class="controls">
+        <input type="file" id="fileInput" accept=".svg">
+        <button class="file-upload" onclick="document.getElementById('fileInput').click()">
+            Choose SVG File
+        </button>
+        
+        <button class="file-upload" onclick="randomizeAll()" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); margin-bottom: 12px;">
+            🎲 Randomize All
+        </button>
+        
+        <button class="file-upload" onclick="resetToDefaults()" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); margin-bottom: 12px;">
+            ↺ Reset to Default
+        </button>
+        
+        <div style="margin-bottom: 12px;">
+            <label style="display: block; font-size: 12px; margin-bottom: 6px; color: #e9d5ff; font-weight: 500;">Save Dimensions</label>
+            <select id="saveDimensions" style="width: 100%; padding: 8px; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+                <option value="1920x1080">Full HD (1920×1080)</option>
+                <option value="1280x720">HD (1280×720)</option>
+                <option value="800x600">Standard (800×600)</option>
+                <option value="1080x1080">Square (1080×1080)</option>
+                <option value="1920x1200">Widescreen (1920×1200)</option>
+                <option value="custom">Use Current Window Size</option>
+            </select>
+        </div>
+        
+        <button class="file-upload" onclick="saveConfiguration()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); margin-bottom: 24px;">
+            💾 Save Configuration
+        </button>
+        
+        <div class="performance">
+            <h3>Performance</h3>
+            <div class="stat">
+                <span>Particles</span>
+                <span class="stat-value" id="particleCount">0</span>
+            </div>
+            <div class="stat">
+                <span>FPS</span>
+                <span class="stat-value" id="fps">0</span>
+            </div>
+            <div class="stat">
+                <span>GPU Memory</span>
+                <span class="stat-value" id="gpuMemory">0 MB</span>
+            </div>
+            <div class="stat">
+                <span>Render Time</span>
+                <span class="stat-value" id="renderTime">0 ms</span>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h4>Core Physics</h4>
+            <div class="control">
+                <label>Mouse Force <span class="value-display" id="mouseForceVal">1.0</span></label>
+                <input type="range" id="mouseForce" min="0" max="5" step="0.1" value="1">
+            </div>
+            <div class="control">
+                <label>Spread Distance <span class="value-display" id="spreadDistanceVal">100</span></label>
+                <input type="range" id="spreadDistance" min="0" max="500" step="10" value="100">
+            </div>
+            <div class="control">
+                <label>Return Strength <span class="value-display" id="returnStrengthVal">0.05</span></label>
+                <input type="range" id="returnStrength" min="0" max="0.2" step="0.01" value="0.05">
+            </div>
+            <div class="control">
+                <label>Effect Radius <span class="value-display" id="effectRadiusVal">150</span></label>
+                <input type="range" id="effectRadius" min="50" max="500" step="10" value="150">
+            </div>
+            <div class="control">
+                <label>Density <span class="value-display" id="densityVal">1.0</span></label>
+                <input type="range" id="density" min="0.1" max="3" step="0.1" value="1">
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h4>Individual Behavior</h4>
+            <div class="control">
+                <label>Sensitivity Variation <span class="value-display" id="sensitivityVariationVal">0.5</span></label>
+                <input type="range" id="sensitivityVariation" min="0" max="2" step="0.1" value="0.5">
+            </div>
+            <div class="control">
+                <label>Mass Variation <span class="value-display" id="massVariationVal">0.5</span></label>
+                <input type="range" id="massVariation" min="0" max="2" step="0.1" value="0.5">
+            </div>
+            <div class="control">
+                <label>Drift Independence <span class="value-display" id="driftIndependenceVal">0.3</span></label>
+                <input type="range" id="driftIndependence" min="0" max="1" step="0.05" value="0.3">
+            </div>
+            <div class="control">
+                <label>Reaction Diversity <span class="value-display" id="reactionDiversityVal">0.5</span></label>
+                <input type="range" id="reactionDiversity" min="0" max="1" step="0.05" value="0.5">
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h4>Response Timing</h4>
+            <div class="control">
+                <label>Response Delay <span class="value-display" id="responseDelayVal">0.1</span></label>
+                <input type="range" id="responseDelay" min="0" max="0.5" step="0.01" value="0.1">
+            </div>
+            <div class="control">
+                <label>Acceleration Smoothness <span class="value-display" id="accelerationSmoothnessVal">0.8</span></label>
+                <input type="range" id="accelerationSmoothness" min="0" max="1" step="0.05" value="0.8">
+            </div>
+            <div class="control">
+                <label>Force Fade Time <span class="value-display" id="forceFadeTimeVal">0.3</span></label>
+                <input type="range" id="forceFadeTime" min="0" max="1" step="0.05" value="0.3">
+            </div>
+            <div class="control">
+                <label>Sync Offset <span class="value-display" id="syncOffsetVal">0.1</span></label>
+                <input type="range" id="syncOffset" min="0" max="0.5" step="0.01" value="0.1">
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h4>Environment</h4>
+            <div class="control">
+                <label>Wind Strength <span class="value-display" id="windStrengthVal">0.0</span></label>
+                <input type="range" id="windStrength" min="0" max="2" step="0.1" value="0">
+            </div>
+            <div class="control">
+                <label>Wind Direction <span class="value-display" id="windDirectionVal">0°</span></label>
+                <input type="range" id="windDirection" min="0" max="360" step="5" value="0">
+            </div>
+            <div class="control">
+                <label>Air Turbulence <span class="value-display" id="airTurbulenceVal">0.0</span></label>
+                <input type="range" id="airTurbulence" min="0" max="1" step="0.05" value="0">
+            </div>
+            <div class="control">
+                <label>Buoyancy <span class="value-display" id="buoyancyVal">0.0</span></label>
+                <input type="range" id="buoyancy" min="-1" max="1" step="0.05" value="0">
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h4>Ethereal Effect</h4>
+            <div class="control">
+                <label>Particle Transparency <span class="value-display" id="particleTransparencyVal">0.8</span></label>
+                <input type="range" id="particleTransparency" min="0.1" max="1" step="0.05" value="0.8">
+            </div>
+            <div class="control">
+                <label>Edge Softness <span class="value-display" id="edgeSoftnessVal">0.5</span></label>
+                <input type="range" id="edgeSoftness" min="0" max="1" step="0.05" value="0.5">
+            </div>
+            <div class="control">
+                <label>Breathing Intensity <span class="value-display" id="breathingIntensityVal">0.0</span></label>
+                <input type="range" id="breathingIntensity" min="0" max="1" step="0.05" value="0">
+            </div>
+            <div class="control">
+                <label>Fade Distance <span class="value-display" id="fadeDistanceVal">100</span></label>
+                <input type="range" id="fadeDistance" min="0" max="300" step="10" value="100">
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h4>Motion Quality</h4>
+            <div class="control">
+                <label>Brownian Strength <span class="value-display" id="brownianStrengthVal">0.0</span></label>
+                <input type="range" id="brownianStrength" min="0" max="2" step="0.1" value="0">
+            </div>
+            <div class="control">
+                <label>Inertial Damping <span class="value-display" id="inertialDampingVal">0.95</span></label>
+                <input type="range" id="inertialDamping" min="0.8" max="1" step="0.01" value="0.95">
+            </div>
+            <div class="control">
+                <label>Flow Coherence <span class="value-display" id="flowCoherenceVal">0.5</span></label>
+                <input type="range" id="flowCoherence" min="0" max="1" step="0.05" value="0.5">
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h4>Appearance</h4>
+            <div class="control">
+                <label>Particle Size <span class="value-display" id="particleSizeVal">3</span></label>
+                <input type="range" id="particleSize" min="1" max="20" step="0.5" value="3">
+            </div>
+            <div class="control">
+                <label>Size Randomness <span class="value-display" id="sizeRandomnessVal">0.5</span></label>
+                <input type="range" id="sizeRandomness" min="0" max="2" step="0.1" value="0.5">
+            </div>
+            <div class="control">
+                <label>Color Mode</label>
+                <select id="colorMode" style="width: 100%; padding: 8px; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+                    <option value="single">Single Color</option>
+                    <option value="dual">Dual Color</option>
+                    <option value="triple">Triple Color</option>
+                    <option value="rainbow">Rainbow</option>
+                </select>
+            </div>
+            <div class="control">
+                <label>Primary Color</label>
+                <input type="color" id="primaryColor" value="#ffffff">
+            </div>
+            <div class="control" id="secondaryColorControl" style="display: none;">
+                <label>Secondary Color</label>
+                <input type="color" id="secondaryColor" value="#ff6b6b">
+            </div>
+            <div class="control" id="tertiaryColorControl" style="display: none;">
+                <label>Tertiary Color</label>
+                <input type="color" id="tertiaryColor" value="#4ecdc4">
+            </div>
+            <div class="control">
+                <label>Color Blend <span class="value-display" id="colorBlendVal">0.5</span></label>
+                <input type="range" id="colorBlend" min="0" max="1" step="0.05" value="0.5">
+            </div>
+            <div class="control">
+                <label>Background Color</label>
+                <input type="color" id="backgroundColor" value="#000000">
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Global variables
+        let scene, camera, renderer;
+        let particles;
+        let mouse = new THREE.Vector2();
+        let raycaster = new THREE.Raycaster();
+        let particlePositions = [];
+        let originalPositions = [];
+        let particleVelocities = [];
+        let particleProperties = [];
+        let clock = new THREE.Clock();
+        let stats = {
+            fps: 0,
+            frameTime: 0,
+            particleCount: 0,
+            gpuMemory: 0,
+            renderTime: 0
+        };
+        let lastFrameTime = performance.now();
+        let frameCount = 0;
+
+        // Physics parameters
+        const defaultParams = {
+            mouseForce: 1,
+            spreadDistance: 100,
+            returnStrength: 0.05,
+            effectRadius: 150,
+            density: 1,
+            sensitivityVariation: 0.5,
+            massVariation: 0.5,
+            driftIndependence: 0.3,
+            reactionDiversity: 0.5,
+            responseDelay: 0.1,
+            accelerationSmoothness: 0.8,
+            forceFadeTime: 0.3,
+            syncOffset: 0.1,
+            windStrength: 0,
+            windDirection: 0,
+            airTurbulence: 0,
+            buoyancy: 0,
+            particleTransparency: 0.8,
+            edgeSoftness: 0.5,
+            breathingIntensity: 0,
+            fadeDistance: 100,
+            brownianStrength: 0,
+            inertialDamping: 0.95,
+            flowCoherence: 0.5,
+            particleSize: 3,
+            sizeRandomness: 0.5,
+            backgroundColor: '#000000',
+            colorMode: 'single',
+            primaryColor: '#ffffff',
+            secondaryColor: '#ff6b6b',
+            tertiaryColor: '#4ecdc4',
+            colorBlend: 0.5
+        };
+        
+        const params = {...defaultParams};
+
+        // Initialize Three.js
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 500;
+
+            renderer = new THREE.WebGLRenderer({
+                canvas: document.getElementById('canvas'),
+                antialias: true,
+                alpha: true
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('mousemove', onMouseMove);
+
+            setupControls();
+            createDefaultParticles();
+            animate();
+        }
+
+        // Create default particles (a circle)
+        function createDefaultParticles() {
+            const numParticles = 1000;
+            const radius = 150;
+            
+            particlePositions = [];
+            originalPositions = [];
+            particleVelocities = [];
+            particleProperties = [];
+            
+            for (let i = 0; i < numParticles; i++) {
+                const angle = (i / numParticles) * Math.PI * 2;
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+                
+                particlePositions.push(x, y, 0);
+                originalPositions.push(x, y, 0);
+                particleVelocities.push(0, 0, 0);
+                
+                particleProperties.push({
+                    sensitivity: 0.5 + Math.random() * params.sensitivityVariation,
+                    mass: 0.5 + Math.random() * params.massVariation,
+                    delay: Math.random() * params.responseDelay,
+                    offset: Math.random() * params.syncOffset,
+                    brownianPhase: Math.random() * Math.PI * 2
+                });
+            }
+            
+            createParticleSystem();
+        }
+
+        // Create particle system
+        function createParticleSystem() {
+            if (particles) {
+                scene.remove(particles);
+                particles.geometry.dispose();
+                particles.material.dispose();
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particlePositions);
+            const sizes = new Float32Array(particlePositions.length / 3);
+            const colors = new Float32Array(particlePositions.length);
+
+            // Helper function to convert hex to RGB
+            function hexToRgb(hex) {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? {
+                    r: parseInt(result[1], 16) / 255,
+                    g: parseInt(result[2], 16) / 255,
+                    b: parseInt(result[3], 16) / 255
+                } : { r: 1, g: 1, b: 1 };
+            }
+
+            const primaryRgb = hexToRgb(params.primaryColor);
+            const secondaryRgb = hexToRgb(params.secondaryColor);
+            const tertiaryRgb = hexToRgb(params.tertiaryColor);
+
+            for (let i = 0; i < sizes.length; i++) {
+                sizes[i] = params.particleSize + (Math.random() - 0.5) * params.sizeRandomness * params.particleSize;
+                
+                let r, g, b;
+                
+                switch (params.colorMode) {
+                    case 'single':
+                        r = primaryRgb.r;
+                        g = primaryRgb.g;
+                        b = primaryRgb.b;
+                        break;
+                        
+                    case 'dual':
+                        const blend1 = Math.random() * params.colorBlend;
+                        r = primaryRgb.r * (1 - blend1) + secondaryRgb.r * blend1;
+                        g = primaryRgb.g * (1 - blend1) + secondaryRgb.g * blend1;
+                        b = primaryRgb.b * (1 - blend1) + secondaryRgb.b * blend1;
+                        break;
+                        
+                    case 'triple':
+                        const rand = Math.random();
+                        if (rand < 0.33) {
+                            r = primaryRgb.r; g = primaryRgb.g; b = primaryRgb.b;
+                        } else if (rand < 0.66) {
+                            r = secondaryRgb.r; g = secondaryRgb.g; b = secondaryRgb.b;
+                        } else {
+                            r = tertiaryRgb.r; g = tertiaryRgb.g; b = tertiaryRgb.b;
+                        }
+                        
+                        // Apply color blending
+                        const blend2 = Math.random() * params.colorBlend * 0.5;
+                        const targetColor = Math.random() < 0.5 ? primaryRgb : (Math.random() < 0.5 ? secondaryRgb : tertiaryRgb);
+                        r = r * (1 - blend2) + targetColor.r * blend2;
+                        g = g * (1 - blend2) + targetColor.g * blend2;
+                        b = b * (1 - blend2) + targetColor.b * blend2;
+                        break;
+                        
+                    case 'rainbow':
+                        const hue = (i / sizes.length + Math.random() * params.colorBlend) % 1;
+                        const hsl = hslToRgb(hue, 0.7 + Math.random() * 0.3, 0.5 + Math.random() * 0.5);
+                        r = hsl.r; g = hsl.g; b = hsl.b;
+                        break;
+                        
+                    default:
+                        r = g = b = 1;
+                }
+                
+                colors[i * 3] = r;
+                colors[i * 3 + 1] = g;
+                colors[i * 3 + 2] = b;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.ShaderMaterial({
+                uniforms: {
+                    time: { value: 0 },
+                    opacity: { value: params.particleTransparency },
+                    edgeSoftness: { value: params.edgeSoftness }
+                },
+                vertexShader: `
+                    attribute float size;
+                    attribute vec3 color;
+                    varying vec3 vColor;
+                    
+                    void main() {
+                        vColor = color;
+                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                        gl_PointSize = size * (300.0 / -mvPosition.z);
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `,
+                fragmentShader: `
+                    uniform float opacity;
+                    uniform float edgeSoftness;
+                    varying vec3 vColor;
+                    
+                    void main() {
+                        float dist = length(gl_PointCoord - vec2(0.5));
+                        float alpha = 1.0 - smoothstep(0.5 - edgeSoftness * 0.5, 0.5, dist);
+                        gl_FragColor = vec4(vColor, alpha * opacity);
+                        if (gl_FragColor.a < 0.01) discard;
+                    }
+                `,
+                transparent: true,
+                blending: THREE.AdditiveBlending
+            });
+
+            particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+            
+            stats.particleCount = positions.length / 3;
+            updateStats();
+        }
+
+        // HSL to RGB conversion
+        function hslToRgb(h, s, l) {
+            let r, g, b;
+            if (s === 0) {
+                r = g = b = l;
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1/6) return p + (q - p) * 6 * t;
+                    if (t < 1/2) return q;
+                    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                };
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+            return { r, g, b };
+        }
+
+        // SVG parsing and particle creation
+        function parseSVGFile(file) {
+            const reader = new FileReader();
+            document.getElementById('loading').style.display = 'block';
+            
+            reader.onload = function(e) {
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(e.target.result, 'image/svg+xml');
+                
+                // Create a temporary SVG element to use DOM methods
+                const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                tempSvg.style.position = 'absolute';
+                tempSvg.style.visibility = 'hidden';
+                tempSvg.setAttribute('width', '1000');
+                tempSvg.setAttribute('height', '1000');
+                document.body.appendChild(tempSvg);
+                
+                // Get SVG viewBox or dimensions
+                const svgElement = svgDoc.querySelector('svg');
+                let svgWidth = 500, svgHeight = 500, viewBoxX = 0, viewBoxY = 0;
+                if (svgElement) {
+                    const viewBox = svgElement.getAttribute('viewBox');
+                    if (viewBox) {
+                        const parts = viewBox.split(' ');
+                        viewBoxX = parseFloat(parts[0]) || 0;
+                        viewBoxY = parseFloat(parts[1]) || 0;
+                        svgWidth = parseFloat(parts[2]) || 500;
+                        svgHeight = parseFloat(parts[3]) || 500;
+                    } else {
+                        svgWidth = parseFloat(svgElement.getAttribute('width')) || 500;
+                        svgHeight = parseFloat(svgElement.getAttribute('height')) || 500;
+                    }
+                }
+                
+                const paths = svgDoc.querySelectorAll('path, circle, rect, ellipse, line, polyline, polygon');
+                
+                // Filter out Figma frame rectangles and background elements
+                const filteredPaths = Array.from(paths).filter(element => {
+                    if (element.tagName.toLowerCase() === 'rect') {
+                        const x = parseFloat(element.getAttribute('x')) || 0;
+                        const y = parseFloat(element.getAttribute('y')) || 0;
+                        const rectWidth = parseFloat(element.getAttribute('width')) || 0;
+                        const rectHeight = parseFloat(element.getAttribute('height')) || 0;
+                        const fill = element.getAttribute('fill');
+                        const stroke = element.getAttribute('stroke');
+                        
+                        // Check if this rectangle is likely a frame/background
+                        const isFrame = (
+                            // Rectangle matches viewBox exactly
+                            (Math.abs(x - viewBoxX) < 1 && Math.abs(y - viewBoxY) < 1 && 
+                             Math.abs(rectWidth - svgWidth) < 1 && Math.abs(rectHeight - svgHeight) < 1) ||
+                            // Rectangle has no fill or transparent fill with no stroke
+                            ((fill === 'none' || fill === 'transparent' || fill === 'rgba(0,0,0,0)' || !fill) &&
+                             (!stroke || stroke === 'none'))
+                        );
+                        
+                        return !isFrame;
+                    }
+                    
+                    // Filter out elements with no fill and no stroke
+                    const fill = element.getAttribute('fill');
+                    const stroke = element.getAttribute('stroke');
+                    if ((fill === 'none' || !fill) && (stroke === 'none' || !stroke)) {
+                        return false;
+                    }
+                    
+                    return true;
+                });
+                
+                particlePositions = [];
+                originalPositions = [];
+                particleVelocities = [];
+                particleProperties = [];
+                
+                // Calculate bounding box of all elements for better centering
+                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+                
+                filteredPaths.forEach(pathElement => {
+                    // Clone the element into our temporary SVG
+                    const clonedElement = pathElement.cloneNode(true);
+                    tempSvg.appendChild(clonedElement);
+                    
+                    const points = getPointsFromPath(clonedElement);
+                    points.forEach(point => {
+                        minX = Math.min(minX, point.x);
+                        maxX = Math.max(maxX, point.x);
+                        minY = Math.min(minY, point.y);
+                        maxY = Math.max(maxY, point.y);
+                    });
+                    
+                    tempSvg.removeChild(clonedElement);
+                });
+                
+                // Calculate center and scale
+                const actualWidth = maxX - minX;
+                const actualHeight = maxY - minY;
+                const centerX = (minX + maxX) / 2;
+                const centerY = (minY + maxY) / 2;
+                
+                // Scale to fit in viewport nicely (use 70% of screen)
+                const targetSize = Math.min(window.innerWidth, window.innerHeight) * 0.35;
+                const scale = targetSize / Math.max(actualWidth, actualHeight);
+                
+                // Generate particles for each path
+                filteredPaths.forEach(pathElement => {
+                    const clonedElement = pathElement.cloneNode(true);
+                    tempSvg.appendChild(clonedElement);
+                    
+                    const points = getPointsFromPath(clonedElement);
+                    points.forEach(point => {
+                        // Center and scale the coordinates
+                        const x = (point.x - centerX) * scale;
+                        const y = -(point.y - centerY) * scale; // Flip Y axis for Three.js
+                        
+                        particlePositions.push(x, y, 0);
+                        originalPositions.push(x, y, 0);
+                        particleVelocities.push(0, 0, 0);
+                        
+                        particleProperties.push({
+                            sensitivity: 0.5 + Math.random() * params.sensitivityVariation,
+                            mass: 0.5 + Math.random() * params.massVariation,
+                            delay: Math.random() * params.responseDelay,
+                            offset: Math.random() * params.syncOffset,
+                            brownianPhase: Math.random() * Math.PI * 2
+                        });
+                    });
+                    
+                    tempSvg.removeChild(clonedElement);
+                });
+                
+                // Clean up temporary SVG
+                document.body.removeChild(tempSvg);
+                
+                // Adjust camera to center on the SVG
+                const avgX = particlePositions.reduce((sum, val, idx) => idx % 3 === 0 ? sum + val : sum, 0) / (particlePositions.length / 3);
+                const avgY = particlePositions.reduce((sum, val, idx) => idx % 3 === 1 ? sum + val : sum, 0) / (particlePositions.length / 3);
+                
+                camera.position.set(avgX, avgY, 500);
+                camera.lookAt(avgX, avgY, 0);
+                
+                createParticleSystem();
+                document.getElementById('loading').style.display = 'none';
+            };
+            
+            reader.readAsText(file);
+        }
+
+        // Extract points from SVG elements
+        function getPointsFromPath(element) {
+            const points = [];
+            const tagName = element.tagName.toLowerCase();
+            
+            if (tagName === 'path') {
+                const pathLength = element.getTotalLength ? element.getTotalLength() : 1000;
+                const numPoints = Math.max(100, Math.floor(pathLength * params.density));
+                
+                for (let i = 0; i < numPoints; i++) {
+                    const point = element.getPointAtLength ? 
+                        element.getPointAtLength((i / numPoints) * pathLength) :
+                        { x: 250 + Math.cos(i * 0.1) * 100, y: 250 + Math.sin(i * 0.1) * 100 };
+                    points.push(point);
+                }
+            } else if (tagName === 'circle') {
+                const cx = parseFloat(element.getAttribute('cx')) || 0;
+                const cy = parseFloat(element.getAttribute('cy')) || 0;
+                const r = parseFloat(element.getAttribute('r')) || 50;
+                const numPoints = Math.floor(2 * Math.PI * r * params.density);
+                
+                for (let i = 0; i < numPoints; i++) {
+                    const angle = (i / numPoints) * Math.PI * 2;
+                    points.push({
+                        x: cx + Math.cos(angle) * r,
+                        y: cy + Math.sin(angle) * r
+                    });
+                }
+            } else if (tagName === 'rect') {
+                const x = parseFloat(element.getAttribute('x')) || 0;
+                const y = parseFloat(element.getAttribute('y')) || 0;
+                const width = parseFloat(element.getAttribute('width')) || 100;
+                const height = parseFloat(element.getAttribute('height')) || 100;
+                const perimeter = 2 * (width + height);
+                const numPoints = Math.floor(perimeter * params.density * 0.5);
+                
+                for (let i = 0; i < numPoints; i++) {
+                    const t = i / numPoints;
+                    const perimeter = 2 * (width + height);
+                    const dist = t * perimeter;
+                    
+                    if (dist < width) {
+                        points.push({ x: x + dist, y: y });
+                    } else if (dist < width + height) {
+                        points.push({ x: x + width, y: y + (dist - width) });
+                    } else if (dist < 2 * width + height) {
+                        points.push({ x: x + width - (dist - width - height), y: y + height });
+                    } else {
+                        points.push({ x: x, y: y + height - (dist - 2 * width - height) });
+                    }
+                }
+            } else if (tagName === 'ellipse') {
+                const cx = parseFloat(element.getAttribute('cx')) || 0;
+                const cy = parseFloat(element.getAttribute('cy')) || 0;
+                const rx = parseFloat(element.getAttribute('rx')) || 50;
+                const ry = parseFloat(element.getAttribute('ry')) || 50;
+                const numPoints = Math.floor(Math.PI * (rx + ry) * params.density);
+                
+                for (let i = 0; i < numPoints; i++) {
+                    const angle = (i / numPoints) * Math.PI * 2;
+                    points.push({
+                        x: cx + Math.cos(angle) * rx,
+                        y: cy + Math.sin(angle) * ry
+                    });
+                }
+            } else if (tagName === 'line') {
+                const x1 = parseFloat(element.getAttribute('x1')) || 0;
+                const y1 = parseFloat(element.getAttribute('y1')) || 0;
+                const x2 = parseFloat(element.getAttribute('x2')) || 100;
+                const y2 = parseFloat(element.getAttribute('y2')) || 100;
+                const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+                const numPoints = Math.floor(length * params.density * 0.5);
+                
+                for (let i = 0; i < numPoints; i++) {
+                    const t = i / (numPoints - 1);
+                    points.push({
+                        x: x1 + (x2 - x1) * t,
+                        y: y1 + (y2 - y1) * t
+                    });
+                }
+            } else if (tagName === 'polyline' || tagName === 'polygon') {
+                const pointsAttr = element.getAttribute('points');
+                if (pointsAttr) {
+                    const coords = pointsAttr.trim().split(/\s+|,/);
+                    const vertices = [];
+                    
+                    for (let i = 0; i < coords.length - 1; i += 2) {
+                        vertices.push({
+                            x: parseFloat(coords[i]),
+                            y: parseFloat(coords[i + 1])
+                        });
+                    }
+                    
+                    // For polygon, close the shape
+                    if (tagName === 'polygon' && vertices.length > 0) {
+                        vertices.push(vertices[0]);
+                    }
+                    
+                    // Create points along the edges
+                    for (let i = 0; i < vertices.length - 1; i++) {
+                        const v1 = vertices[i];
+                        const v2 = vertices[i + 1];
+                        const length = Math.sqrt((v2.x - v1.x) ** 2 + (v2.y - v1.y) ** 2);
+                        const numPoints = Math.max(2, Math.floor(length * params.density * 0.5));
+                        
+                        for (let j = 0; j < numPoints; j++) {
+                            const t = j / (numPoints - 1);
+                            points.push({
+                                x: v1.x + (v2.x - v1.x) * t,
+                                y: v1.y + (v2.y - v1.y) * t
+                            });
+                        }
+                    }
+                }
+            }
+            
+            return points;
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const renderStart = performance.now();
+            const deltaTime = clock.getDelta();
+            const time = clock.getElapsedTime();
+            
+            updateParticles(deltaTime, time);
+            
+            if (particles && particles.material.uniforms) {
+                particles.material.uniforms.time.value = time;
+                particles.material.uniforms.opacity.value = params.particleTransparency;
+                particles.material.uniforms.edgeSoftness.value = params.edgeSoftness;
+            }
+            
+            renderer.render(scene, camera);
+            
+            // Update performance stats
+            const renderEnd = performance.now();
+            stats.renderTime = renderEnd - renderStart;
+            
+            frameCount++;
+            const currentTime = performance.now();
+            if (currentTime - lastFrameTime >= 1000) {
+                stats.fps = frameCount;
+                frameCount = 0;
+                lastFrameTime = currentTime;
+                updateStats();
+            }
+        }
+
+        // Update particle positions
+        function updateParticles(deltaTime, time) {
+            if (!particles) return;
+            
+            const positions = particles.geometry.attributes.position.array;
+            const sizes = particles.geometry.attributes.size.array;
+            
+            // Get mouse position in 3D space
+            raycaster.setFromCamera(mouse, camera);
+            const mousePos3D = new THREE.Vector3(mouse.x * (window.innerWidth / 2), mouse.y * (window.innerHeight / 2), 0);
+
+            
+            // Wind calculation
+            const windRad = (params.windDirection * Math.PI) / 180;
+            const windX = Math.cos(windRad) * params.windStrength;
+            const windY = Math.sin(windRad) * params.windStrength;
+            
+            for (let i = 0; i < positions.length; i += 3) {
+                const idx = i / 3;
+                const props = particleProperties[idx];
+                
+                // Current position
+                const px = positions[i];
+                const py = positions[i + 1];
+                const pz = positions[i + 2];
+                
+                // Original position
+                const ox = originalPositions[i];
+                const oy = originalPositions[i + 1];
+                const oz = originalPositions[i + 2];
+                
+                // Distance from mouse
+                const dx = px - mousePos3D.x;
+                const dy = py - mousePos3D.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                // Forces
+                let fx = 0, fy = 0, fz = 0;
+                
+                // Mouse repulsion with delay
+                if (dist < params.effectRadius && time > props.delay) {
+                    const force = (1 - dist / params.effectRadius) * params.mouseForce * props.sensitivity;
+                    const angle = Math.atan2(dy, dx);
+                    fx += Math.cos(angle) * force * params.spreadDistance;
+                    fy += Math.sin(angle) * force * params.spreadDistance;
+                }
+                
+                // Return force
+                const returnDx = ox - px;
+                const returnDy = oy - py;
+                fx += returnDx * params.returnStrength / props.mass;
+                fy += returnDy * params.returnStrength / props.mass;
+                
+                // Environmental forces
+                fx += windX;
+                fy += windY + params.buoyancy;
+                
+                // Brownian motion
+                if (params.brownianStrength > 0) {
+                    fx += Math.sin(time * 2 + props.brownianPhase) * params.brownianStrength;
+                    fy += Math.cos(time * 3 + props.brownianPhase * 1.5) * params.brownianStrength;
+                }
+                
+                // Turbulence
+                if (params.airTurbulence > 0) {
+                    fx += (Math.random() - 0.5) * params.airTurbulence * 2;
+                    fy += (Math.random() - 0.5) * params.airTurbulence * 2;
+                }
+                
+                // Update velocity with smoothing
+                particleVelocities[i] = particleVelocities[i] * params.accelerationSmoothness + fx * (1 - params.accelerationSmoothness);
+                particleVelocities[i + 1] = particleVelocities[i + 1] * params.accelerationSmoothness + fy * (1 - params.accelerationSmoothness);
+                
+                // Apply damping
+                particleVelocities[i] *= params.inertialDamping;
+                particleVelocities[i + 1] *= params.inertialDamping;
+                
+                // Update position
+                positions[i] += particleVelocities[i] * deltaTime * 60;
+                positions[i + 1] += particleVelocities[i + 1] * deltaTime * 60;
+                
+                // Breathing effect
+                if (params.breathingIntensity > 0) {
+                    const breathScale = 1 + Math.sin(time * 2 + props.offset * Math.PI * 2) * params.breathingIntensity * 0.3;
+                    sizes[idx] = (params.particleSize + (Math.random() - 0.5) * params.sizeRandomness * params.particleSize) * breathScale;
+                }
+            }
+            
+            particles.geometry.attributes.position.needsUpdate = true;
+            particles.geometry.attributes.size.needsUpdate = true;
+        }
+
+        // Setup controls
+        function setupControls() {
+            // File input
+            document.getElementById('fileInput').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file && file.type === 'image/svg+xml') {
+                    parseSVGFile(file);
+                }
+            });
+            
+            // Color mode selector
+            document.getElementById('colorMode').addEventListener('change', function() {
+                params.colorMode = this.value;
+                updateColorControlVisibility();
+                if (particles) createParticleSystem();
+            });
+            
+            // Update color control visibility based on mode
+            function updateColorControlVisibility() {
+                const mode = params.colorMode;
+                const secondaryControl = document.getElementById('secondaryColorControl');
+                const tertiaryControl = document.getElementById('tertiaryColorControl');
+                
+                secondaryControl.style.display = (mode === 'dual' || mode === 'triple') ? 'block' : 'none';
+                tertiaryControl.style.display = (mode === 'triple') ? 'block' : 'none';
+            }
+            
+            // Initialize color control visibility
+            updateColorControlVisibility();
+            
+            // Parameter controls
+            Object.keys(params).forEach(key => {
+                const element = document.getElementById(key);
+                if (element && element.type === 'range') {
+                    element.addEventListener('input', function() {
+                        params[key] = parseFloat(this.value);
+                        const display = document.getElementById(key + 'Val');
+                        if (display) {
+                            if (key === 'windDirection') {
+                                display.textContent = this.value + '°';
+                            } else {
+                                display.textContent = this.value;
+                            }
+                        }
+                    });
+                } else if (element && element.type === 'color') {
+                    element.addEventListener('input', function() {
+                        params[key] = this.value;
+                        if (key === 'backgroundColor') {
+                            renderer.setClearColor(this.value);
+                        } else if (particles) {
+                            createParticleSystem(); // Recreate particles with new colors
+                        }
+                    });
+                }
+            });
+        }
+
+        // Randomize all parameters
+        function randomizeAll() {
+            const ranges = {
+                mouseForce: { min: 0, max: 5 },
+                spreadDistance: { min: 0, max: 500 },
+                returnStrength: { min: 0, max: 0.2 },
+                effectRadius: { min: 50, max: 500 },
+                density: { min: 0.1, max: 3 },
+                sensitivityVariation: { min: 0, max: 2 },
+                massVariation: { min: 0, max: 2 },
+                driftIndependence: { min: 0, max: 1 },
+                reactionDiversity: { min: 0, max: 1 },
+                responseDelay: { min: 0, max: 0.5 },
+                accelerationSmoothness: { min: 0, max: 1 },
+                forceFadeTime: { min: 0, max: 1 },
+                syncOffset: { min: 0, max: 0.5 },
+                windStrength: { min: 0, max: 2 },
+                windDirection: { min: 0, max: 360 },
+                airTurbulence: { min: 0, max: 1 },
+                buoyancy: { min: -1, max: 1 },
+                particleTransparency: { min: 0.1, max: 1 },
+                edgeSoftness: { min: 0, max: 1 },
+                breathingIntensity: { min: 0, max: 1 },
+                fadeDistance: { min: 0, max: 300 },
+                brownianStrength: { min: 0, max: 2 },
+                inertialDamping: { min: 0.8, max: 1 },
+                flowCoherence: { min: 0, max: 1 },
+                particleSize: { min: 1, max: 20 },
+                sizeRandomness: { min: 0, max: 2 },
+                colorBlend: { min: 0, max: 1 }
+            };
+
+            Object.keys(ranges).forEach(key => {
+                const range = ranges[key];
+                const value = Math.random() * (range.max - range.min) + range.min;
+                params[key] = value;
+                
+                const element = document.getElementById(key);
+                if (element) {
+                    element.value = value;
+                    const display = document.getElementById(key + 'Val');
+                    if (display) {
+                        if (key === 'windDirection') {
+                            display.textContent = Math.round(value) + '°';
+                        } else if (key === 'particleSize' || key === 'spreadDistance' || key === 'effectRadius' || key === 'fadeDistance') {
+                            display.textContent = Math.round(value);
+                        } else if (key === 'density' || key === 'mouseForce' || range.max > 2) {
+                            display.textContent = value.toFixed(1);
+                        } else {
+                            display.textContent = value.toFixed(2);
+                        }
+                    }
+                }
+            });
+            
+            // Randomize color mode
+            const colorModes = ['single', 'dual', 'triple', 'rainbow'];
+            const randomColorMode = colorModes[Math.floor(Math.random() * colorModes.length)];
+            params.colorMode = randomColorMode;
+            document.getElementById('colorMode').value = randomColorMode;
+            
+            // Randomize colors
+            const randomColor1 = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+            const randomColor2 = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+            const randomColor3 = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+            const randomBgColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+            
+            params.primaryColor = randomColor1;
+            params.secondaryColor = randomColor2;
+            params.tertiaryColor = randomColor3;
+            params.backgroundColor = randomBgColor;
+            
+            document.getElementById('primaryColor').value = randomColor1;
+            document.getElementById('secondaryColor').value = randomColor2;
+            document.getElementById('tertiaryColor').value = randomColor3;
+            document.getElementById('backgroundColor').value = randomBgColor;
+            
+            // Update color control visibility
+            const secondaryControl = document.getElementById('secondaryColorControl');
+            const tertiaryControl = document.getElementById('tertiaryColorControl');
+            secondaryControl.style.display = (randomColorMode === 'dual' || randomColorMode === 'triple') ? 'block' : 'none';
+            tertiaryControl.style.display = (randomColorMode === 'triple') ? 'block' : 'none';
+            
+            renderer.setClearColor(randomBgColor);
+            
+            // Recreate particles with new settings
+            if (particles) {
+                createParticleSystem();
+            }
+        }
+
+        // Reset to default values
+        function resetToDefaults() {
+            Object.keys(defaultParams).forEach(key => {
+                params[key] = defaultParams[key];
+                
+                const element = document.getElementById(key);
+                if (element) {
+                    element.value = defaultParams[key];
+                    const display = document.getElementById(key + 'Val');
+                    if (display) {
+                        if (key === 'windDirection') {
+                            display.textContent = defaultParams[key] + '°';
+                        } else {
+                            display.textContent = defaultParams[key];
+                        }
+                    }
+                }
+            });
+            
+            // Reset color control visibility
+            const secondaryControl = document.getElementById('secondaryColorControl');
+            const tertiaryControl = document.getElementById('tertiaryColorControl');
+            secondaryControl.style.display = 'none';
+            tertiaryControl.style.display = 'none';
+            
+            // Reset background color
+            renderer.setClearColor(defaultParams.backgroundColor);
+            
+            // Recreate particles
+            if (particles) {
+                createParticleSystem();
+            }
+        }
+
+        // Save current configuration
+        function saveConfiguration() {
+            const dimensionSelect = document.getElementById('saveDimensions').value;
+            let width, height;
+            
+            if (dimensionSelect === 'custom') {
+                width = window.innerWidth;
+                height = window.innerHeight;
+            } else {
+                const dimensions = dimensionSelect.split('x');
+                width = parseInt(dimensions[0]);
+                height = parseInt(dimensions[1]);
+            }
+            
+            const config = {
+                params: {...params},
+                timestamp: new Date().toISOString(),
+                dimensions: { width, height }
+            };
+            
+            // Generate standalone HTML with the current particle positions and all parameters
+            const particleData = {
+                positions: Array.from(particlePositions),
+                originalPositions: Array.from(originalPositions),
+                properties: particleProperties
+            };
+            
+            const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Particle System - Saved Configuration</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden; 
+            background: ${params.backgroundColor}; 
+            color: white;
+        }
+        #canvas { width: 100vw; height: 100vh; display: block; }
+        #info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            max-width: 300px;
+            z-index: 1000;
+        }
+        #toggleInfo {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            z-index: 1001;
+        }
+        #toggleInfo:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <button id="toggleInfo" onclick="toggleInfoPanel()">ℹ️</button>
+    <div id="info">
+        <strong>SVG Particle System</strong><br>
+        Saved: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}<br>
+        Dimensions: ${width}×${height}<br>
+        Particles: ${particleData.positions.length / 3}<br><br>
+        <strong>Controls:</strong><br>
+        • Move mouse to interact<br>
+        • Click ℹ️ to toggle this panel<br><br>
+        <strong>Configuration:</strong><br>
+        • Color Mode: ${params.colorMode}<br>
+        • Mouse Force: ${params.mouseForce}<br>
+        • Effect Radius: ${params.effectRadius}px
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
+    <script>
+// Configuration and data
+const params = ${JSON.stringify(params, null, 2)};
+const savedParticleData = ${JSON.stringify(particleData, null, 2)};
+
+// Particle system variables
+let scene, camera, renderer, particles;
+let mouse = new THREE.Vector2();
+let particlePositions = [...savedParticleData.positions];
+let originalPositions = [...savedParticleData.originalPositions];
+let particleVelocities = new Array(particlePositions.length).fill(0);
+let particleProperties = [...savedParticleData.properties];
+let clock = new THREE.Clock();
+
+function init() {
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 500;
+    
+    renderer = new THREE.WebGLRenderer({ 
+        canvas: document.getElementById('canvas'), 
+        antialias: true,
+        alpha: true
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setClearColor(params.backgroundColor);
+    
+    createParticleSystem();
+    
+    window.addEventListener('resize', onResize);
+    window.addEventListener('mousemove', onMouseMove);
+    
+    animate();
+}
+
+function createParticleSystem() {
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particlePositions);
+    const sizes = new Float32Array(particlePositions.length / 3);
+    const colors = new Float32Array(particlePositions.length);
+    
+    // Helper function to convert hex to RGB
+    function hexToRgb(hex) {
+        const result = /^#?([a-f\\d]{2})([a-f\\d]{2})([a-f\\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16) / 255,
+            g: parseInt(result[2], 16) / 255,
+            b: parseInt(result[3], 16) / 255
+        } : { r: 1, g: 1, b: 1 };
+    }
+    
+    function hslToRgb(h, s, l) {
+        let r, g, b;
+        if (s === 0) {
+            r = g = b = l;
+        } else {
+            const hue2rgb = (p, q, t) => {
+                if (t < 0) t += 1;
+                if (t > 1) t -= 1;
+                if (t < 1/6) return p + (q - p) * 6 * t;
+                if (t < 1/2) return q;
+                if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                return p;
+            };
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            r = hue2rgb(p, q, h + 1/3);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1/3);
+        }
+        return { r, g, b };
+    }
+
+    const primaryRgb = hexToRgb(params.primaryColor);
+    const secondaryRgb = hexToRgb(params.secondaryColor);
+    const tertiaryRgb = hexToRgb(params.tertiaryColor);
+
+    for (let i = 0; i < sizes.length; i++) {
+        sizes[i] = params.particleSize + (Math.random() - 0.5) * params.sizeRandomness * params.particleSize;
+        
+        let r, g, b;
+        
+        switch (params.colorMode) {
+            case 'single':
+                r = primaryRgb.r; g = primaryRgb.g; b = primaryRgb.b;
+                break;
+            case 'dual':
+                const blend1 = Math.random() * params.colorBlend;
+                r = primaryRgb.r * (1 - blend1) + secondaryRgb.r * blend1;
+                g = primaryRgb.g * (1 - blend1) + secondaryRgb.g * blend1;
+                b = primaryRgb.b * (1 - blend1) + secondaryRgb.b * blend1;
+                break;
+            case 'triple':
+                const rand = Math.random();
+                if (rand < 0.33) {
+                    r = primaryRgb.r; g = primaryRgb.g; b = primaryRgb.b;
+                } else if (rand < 0.66) {
+                    r = secondaryRgb.r; g = secondaryRgb.g; b = secondaryRgb.b;
+                } else {
+                    r = tertiaryRgb.r; g = tertiaryRgb.g; b = tertiaryRgb.b;
+                }
+                const blend2 = Math.random() * params.colorBlend * 0.5;
+                const targetColor = Math.random() < 0.5 ? primaryRgb : (Math.random() < 0.5 ? secondaryRgb : tertiaryRgb);
+                r = r * (1 - blend2) + targetColor.r * blend2;
+                g = g * (1 - blend2) + targetColor.g * blend2;
+                b = b * (1 - blend2) + targetColor.b * blend2;
+                break;
+            case 'rainbow':
+                const hue = (i / sizes.length + Math.random() * params.colorBlend) % 1;
+                const hsl = hslToRgb(hue, 0.7 + Math.random() * 0.3, 0.5 + Math.random() * 0.5);
+                r = hsl.r; g = hsl.g; b = hsl.b;
+                break;
+            default:
+                r = g = b = 1;
+        }
+        
+        colors[i * 3] = r;
+        colors[i * 3 + 1] = g;
+        colors[i * 3 + 2] = b;
+    }
+    
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    
+    const material = new THREE.ShaderMaterial({
+        uniforms: {
+            time: { value: 0 },
+            opacity: { value: params.particleTransparency },
+            edgeSoftness: { value: params.edgeSoftness }
+        },
+        vertexShader: \\\`
+            attribute float size;
+            attribute vec3 color;
+            varying vec3 vColor;
+            void main() {
+                vColor = color;
+                vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                gl_PointSize = size * (300.0 / -mvPosition.z);
+                gl_Position = projectionMatrix * mvPosition;
+            }
+        \\\`,
+        fragmentShader: \\\`
+            uniform float opacity;
+            uniform float edgeSoftness;
+            varying vec3 vColor;
+            void main() {
+                float dist = length(gl_PointCoord - vec2(0.5));
+                float alpha = 1.0 - smoothstep(0.5 - edgeSoftness * 0.5, 0.5, dist);
+                gl_FragColor = vec4(vColor, alpha * opacity);
+                if (gl_FragColor.a < 0.01) discard;
+            }
+        \\\`,
+        transparent: true,
+        blending: THREE.AdditiveBlending
+    });
+    
+    particles = new THREE.Points(geometry, material);
+    scene.add(particles);
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    const deltaTime = clock.getDelta();
+    const time = clock.getElapsedTime();
+    
+    updateParticles(deltaTime, time);
+    
+    if (particles) {
+        particles.material.uniforms.time.value = time;
+        particles.material.uniforms.opacity.value = params.particleTransparency;
+        particles.material.uniforms.edgeSoftness.value = params.edgeSoftness;
+    }
+    
+    renderer.render(scene, camera);
+}
+
+function updateParticles(deltaTime, time) {
+    if (!particles) return;
+    
+    const positions = particles.geometry.attributes.position.array;
+    const sizes = particles.geometry.attributes.size.array;
+    const mousePos3D = new THREE.Vector3(mouse.x * (window.innerWidth / 2), mouse.y * (window.innerHeight / 2), 0);
+    
+    const windRad = (params.windDirection * Math.PI) / 180;
+    const windX = Math.cos(windRad) * params.windStrength;
+    const windY = Math.sin(windRad) * params.windStrength;
+    
+    for (let i = 0; i < positions.length; i += 3) {
+        const idx = i / 3;
+        const props = particleProperties[idx];
+        
+        const px = positions[i];
+        const py = positions[i + 1];
+        const ox = originalPositions[i];
+        const oy = originalPositions[i + 1];
+        
+        const dx = px - mousePos3D.x;
+        const dy = py - mousePos3D.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        let fx = 0, fy = 0;
+        
+        if (dist < params.effectRadius && time > props.delay) {
+            const force = (1 - dist / params.effectRadius) * params.mouseForce * props.sensitivity;
+            const angle = Math.atan2(dy, dx);
+            fx += Math.cos(angle) * force * params.spreadDistance;
+            fy += Math.sin(angle) * force * params.spreadDistance;
+        }
+        
+        fx += (ox - px) * params.returnStrength / props.mass;
+        fy += (oy - py) * params.returnStrength / props.mass;
+        fx += windX;
+        fy += windY + params.buoyancy;
+        
+        if (params.brownianStrength > 0) {
+            fx += Math.sin(time * 2 + props.brownianPhase) * params.brownianStrength;
+            fy += Math.cos(time * 3 + props.brownianPhase * 1.5) * params.brownianStrength;
+        }
+        
+        if (params.airTurbulence > 0) {
+            fx += (Math.random() - 0.5) * params.airTurbulence * 2;
+            fy += (Math.random() - 0.5) * params.airTurbulence * 2;
+        }
+        
+        particleVelocities[i] = particleVelocities[i] * params.accelerationSmoothness + fx * (1 - params.accelerationSmoothness);
+        particleVelocities[i + 1] = particleVelocities[i + 1] * params.accelerationSmoothness + fy * (1 - params.accelerationSmoothness);
+        
+        particleVelocities[i] *= params.inertialDamping;
+        particleVelocities[i + 1] *= params.inertialDamping;
+        
+        positions[i] += particleVelocities[i] * deltaTime * 60;
+        positions[i + 1] += particleVelocities[i + 1] * deltaTime * 60;
+        
+        if (params.breathingIntensity > 0) {
+            const breathScale = 1 + Math.sin(time * 2 + props.offset * Math.PI * 2) * params.breathingIntensity * 0.3;
+            sizes[idx] = (params.particleSize + (Math.random() - 0.5) * params.sizeRandomness * params.particleSize) * breathScale;
+        }
+    }
+    
+    particles.geometry.attributes.position.needsUpdate = true;
+    particles.geometry.attributes.size.needsUpdate = true;
+}
+
+function onResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function onMouseMove(event) {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+}
+
+function toggleInfoPanel() {
+    const info = document.getElementById('info');
+    info.classList.toggle('hidden');
+}
+
+// Initialize
+init();
+    <\/script>
+</body>
+</html>`;
+            
+            // Create download
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `particle-system-${Date.now()}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            // Show success message
+            const button = document.querySelector('[onclick="saveConfiguration()"]');
+            const originalText = button.textContent;
+            button.textContent = '✅ Saved!';
+            button.style.background = 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)';
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            }, 2000);
+        }
+
+        // Update performance stats
+        function updateStats() {
+            document.getElementById('particleCount').textContent = stats.particleCount.toLocaleString();
+            document.getElementById('fps').textContent = stats.fps;
+            document.getElementById('renderTime').textContent = stats.renderTime.toFixed(2) + ' ms';
+            
+            // Estimate GPU memory
+            if (particles) {
+                const positions = stats.particleCount * 3 * 4; // 3 floats * 4 bytes
+                const velocities = stats.particleCount * 3 * 4;
+                const sizes = stats.particleCount * 4;
+                const colors = stats.particleCount * 3 * 4;
+                const totalBytes = positions + velocities + sizes + colors;
+                stats.gpuMemory = (totalBytes / (1024 * 1024)).toFixed(2);
+                document.getElementById('gpuMemory').textContent = stats.gpuMemory + ' MB';
+            }
+        }
+
+        // Event handlers
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onMouseMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

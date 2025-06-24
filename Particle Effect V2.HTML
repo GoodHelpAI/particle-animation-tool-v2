@@ -700,13 +700,12 @@
         }
 
         // SVG parsing and particle creation
-        function parseSVGFile(file) {
-            const reader = new FileReader();
+        async function parseSVGFile(file) {
             document.getElementById('loading').style.display = 'block';
-            
-            reader.onload = function(e) {
-                const parser = new DOMParser();
-                const svgDoc = parser.parseFromString(e.target.result, 'image/svg+xml');
+
+            const text = await file.text();
+            const parser = new DOMParser();
+            const svgDoc = parser.parseFromString(text, 'image/svg+xml');
                 
                 // Create a temporary SVG element to use DOM methods
                 const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -776,21 +775,23 @@
                 // Calculate bounding box of all elements for better centering
                 let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
                 
-                filteredPaths.forEach(pathElement => {
-                    // Clone the element into our temporary SVG
+                let index = 0;
+                for (const pathElement of filteredPaths) {
                     const clonedElement = pathElement.cloneNode(true);
                     tempSvg.appendChild(clonedElement);
-                    
+
                     const points = getPointsFromPath(clonedElement);
-                    points.forEach(point => {
+                    for (const point of points) {
                         minX = Math.min(minX, point.x);
                         maxX = Math.max(maxX, point.x);
                         minY = Math.min(minY, point.y);
                         maxY = Math.max(maxY, point.y);
-                    });
-                    
+                    }
+
                     tempSvg.removeChild(clonedElement);
-                });
+
+                    if (++index % 5 === 0) await new Promise(r => setTimeout(r, 0));
+                }
                 
                 // Calculate center and scale
                 const actualWidth = maxX - minX;
@@ -803,20 +804,20 @@
                 const scale = targetSize / Math.max(actualWidth, actualHeight);
                 
                 // Generate particles for each path
-                filteredPaths.forEach(pathElement => {
+                index = 0;
+                for (const pathElement of filteredPaths) {
                     const clonedElement = pathElement.cloneNode(true);
                     tempSvg.appendChild(clonedElement);
-                    
+
                     const points = getPointsFromPath(clonedElement);
-                    points.forEach(point => {
-                        // Center and scale the coordinates
+                    for (const point of points) {
                         const x = (point.x - centerX) * scale;
                         const y = -(point.y - centerY) * scale; // Flip Y axis for Three.js
-                        
+
                         particlePositions.push(x, y, 0);
                         originalPositions.push(x, y, 0);
                         particleVelocities.push(0, 0, 0);
-                        
+
                         particleProperties.push({
                             sensitivity: 0.5 + Math.random() * params.sensitivityVariation,
                             mass: 0.5 + Math.random() * params.massVariation,
@@ -824,10 +825,14 @@
                             offset: Math.random() * params.syncOffset,
                             brownianPhase: Math.random() * Math.PI * 2
                         });
-                    });
-                    
+
+                        if (particlePositions.length % 3000 === 0) await new Promise(r => setTimeout(r, 0));
+                    }
+
                     tempSvg.removeChild(clonedElement);
-                });
+
+                    if (++index % 5 === 0) await new Promise(r => setTimeout(r, 0));
+                }
                 
                 // Clean up temporary SVG
                 document.body.removeChild(tempSvg);
@@ -841,9 +846,9 @@
                 
                 createParticleSystem();
                 document.getElementById('loading').style.display = 'none';
-            };
-            
-            reader.readAsText(file);
+
+            // ensure UI updates
+            await new Promise(r => setTimeout(r, 0));
         }
 
         // Extract points from SVG elements
@@ -1092,10 +1097,13 @@
         // Setup controls
         function setupControls() {
             // File input
-            document.getElementById('fileInput').addEventListener('change', function(e) {
+            document.getElementById('fileInput').addEventListener('change', async function(e) {
                 const file = e.target.files[0];
-                if (file && file.type === 'image/svg+xml') {
-                    parseSVGFile(file);
+                if (!file) return;
+
+                const isSvg = file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg');
+                if (isSvg) {
+                    await parseSVGFile(file);
                 }
             });
             
@@ -1634,14 +1642,29 @@ init();
             
             // Create download
             const blob = new Blob([html], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `particle-system-${Date.now()}.html`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            const fileName = `particle-system-${Date.now()}.html`;
+
+            // Cross-browser download handling
+            if (window.navigator.msSaveOrOpenBlob) {
+                // IE/Edge legacy support
+                window.navigator.msSaveOrOpenBlob(blob, fileName);
+            } else if ('download' in HTMLAnchorElement.prototype) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } else {
+                // Fallback for very old browsers
+                const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+                const win = window.open(dataUrl, '_blank');
+                if (!win) {
+                    alert('Popup blocked. Please allow popups to download the file.');
+                }
+            }
             
             // Show success message
             const button = document.querySelector('[onclick="saveConfiguration()"]');

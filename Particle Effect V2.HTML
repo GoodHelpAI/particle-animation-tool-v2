@@ -1641,7 +1641,8 @@ init();
 </html>`;
             
             // Create download
-            const blob = new Blob([html], { type: 'text/html' });
+            const finalHtml = html.replace(/<\\\/script>/g, '</script>');
+            const blob = new Blob([finalHtml], { type: 'text/html' });
             const fileName = `particle-system-${Date.now()}.html`;
 
             // Cross-browser download handling
@@ -1659,7 +1660,7 @@ init();
                 URL.revokeObjectURL(url);
             } else {
                 // Fallback for very old browsers
-                const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+                const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(finalHtml);
                 const win = window.open(dataUrl, '_blank');
                 if (!win) {
                     alert('Popup blocked. Please allow popups to download the file.');
